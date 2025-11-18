@@ -71,6 +71,10 @@ app.get('/', (req, res) => {
   // res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
+// Acceso directo a index.html
+app.get('/index.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
 
 /* ===== 404 ===== */
 app.use((req, res) =>
