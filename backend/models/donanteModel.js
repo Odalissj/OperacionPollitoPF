@@ -1,0 +1,203 @@
+// models/DonanteModel.js
+
+const pool = require("../config/dbconfig");
+
+/**
+ * Modelo para la tabla Donantes.
+ * Dependencias: Paises, Departamentos, Municipios, Usuarios (3 veces)
+ */
+class DonanteModel {
+  /**
+   * Obtiene todos los donantes con información detallada.
+   */
+  static async findAll() {
+    const query = `SELECT 
+      d.idDonador,
+      d.nombre1Donante,
+      d.nombre2Donante,
+      d.nombre3Donante,
+      d.apellido1Donante,
+      d.apellido2Donante,
+      d.apellido3Donante,
+      CONCAT(
+        d.nombre1Donante, ' ',
+        d.nombre2Donante, ' ',
+        d.nombre3Donante, ' ',
+        d.apellido1Donante, ' ',
+        d.apellido2Donante, ' ',
+        d.apellido3Donante
+      ) AS nombreCompleto,
+      d.telefonoDonante,
+      d.idPaisDonante,
+      d.idDepartamentoDona,
+      d.idMunicipioDona,
+      d.idUsuarioDonante,
+      d.fechaIngresoDona,
+      d.horaIngresoDona,
+      d.idUsuarioIngreso,
+      d.fechaActualizacion,
+      d.horaActualizacion,
+      d.idUsuarioActualiza,
+
+      p.nombrePais AS pais,
+      dp.nombreDepartamento AS departamento,
+      m.nombreMunicipio AS municipio,
+
+      u_prop.nombreUsuario AS usuarioDonanteNombre,
+      u_ing.nombreUsuario  AS usuarioIngresoNombre,
+      u_act.nombreUsuario  AS usuarioActualizaNombre
+    FROM donantes d
+    JOIN paises p
+      ON d.idPaisDonante = p.idPais
+    JOIN departamentos dp
+      ON d.idDepartamentoDona = dp.idDepartamento
+    JOIN municipios m
+      ON d.idMunicipioDona = m.idMunicipio
+    LEFT JOIN usuarios u_prop
+      ON d.idUsuarioDonante = u_prop.idUsuario
+    JOIN usuarios u_ing
+      ON d.idUsuarioIngreso = u_ing.idUsuario
+    JOIN usuarios u_act
+      ON d.idUsuarioActualiza = u_act.idUsuario
+    ORDER BY d.idDonador ASC
+  `;
+    const [rows] = await pool.query(query);
+    return rows;
+  }
+
+  /**
+   * Obtiene un donante por su ID.
+   */
+  static async findById(id) {
+    const query = `
+            SELECT 
+                d.*,
+                p.nombrePais,
+                dp.nombreDepartamento,
+                m.nombreMunicipio,
+                u_prop.nombreUsuario AS usuarioAsociado,
+                u_ing.nombreUsuario AS usuarioIngreso,
+                u_act.nombreUsuario AS usuarioActualiza
+            FROM donantes d
+            JOIN paises p ON d.idPaisDonante = p.idPais
+            JOIN departamentos dp ON d.idDepartamentoDona = dp.idDepartamento
+            JOIN municipios m ON d.idMunicipioDona = m.idMunicipio
+            LEFT JOIN usuarios u_prop ON d.idUsuarioDonante = u_prop.idUsuario
+            JOIN usuarios u_ing ON d.idUsuarioIngreso = u_ing.idUsuario
+            JOIN usuarios u_act ON d.idUsuarioActualiza = u_act.idUsuario
+            WHERE d.idDonador = ?
+        `;
+    const [rows] = await pool.query(query, [id]);
+    return rows[0] || null;
+  }
+
+  /**
+   * Crea un nuevo donante.
+   */
+  static async create(data) {
+    const {
+      nombre1Donante,
+      nombre2Donante,
+      nombre3Donante,
+      apellido1Donante,
+      apellido2Donante,
+      apellido3Donante,
+      idPaisDonante,
+      idDepartamentoDona,
+      idMunicipioDona,
+      telefonoDonante,
+      idUsuarioDonante,
+      idUsuarioIngreso,
+    } = data;
+
+    const [result] = await pool.query(
+      `INSERT INTO donantes (
+                nombre1Donante, nombre2Donante, nombre3Donante,
+                apellido1Donante, apellido2Donante, apellido3Donante,
+                idPaisDonante, idDepartamentoDona, idMunicipioDona,
+                telefonoDonante, idUsuarioDonante, 
+                fechaIngresoDona, horaIngresoDona, idUsuarioIngreso,
+                fechaActualizacion, horaActualizacion, idUsuarioActualiza
+             ) VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                CURDATE(), CURTIME(), ?, 
+                CURDATE(), CURTIME(), ?
+             )`,
+      [
+        nombre1Donante,
+        nombre2Donante,
+        nombre3Donante,
+        apellido1Donante,
+        apellido2Donante,
+        apellido3Donante,
+        idPaisDonante,
+        idDepartamentoDona,
+        idMunicipioDona,
+        telefonoDonante,
+        idUsuarioDonante,
+        idUsuarioIngreso, // idUsuarioIngreso
+        idUsuarioIngreso, // idUsuarioActualiza (Inicialmente el mismo que el de ingreso)
+      ]
+    );
+    return result.insertId;
+  }
+
+  /**
+   * Actualiza la información de un donante.
+   */
+  static async update(id, data) {
+    const {
+      nombre1Donante,
+      nombre2Donante,
+      nombre3Donante,
+      apellido1Donante,
+      apellido2Donante,
+      apellido3Donante,
+      idPaisDonante,
+      idDepartamentoDona,
+      idMunicipioDona,
+      telefonoDonante,
+      idUsuarioDonante,
+      idUsuarioActualiza,
+    } = data;
+
+    const [result] = await pool.query(
+      `UPDATE donantes SET 
+                nombre1Donante = ?, nombre2Donante = ?, nombre3Donante = ?,
+                apellido1Donante = ?, apellido2Donante = ?, apellido3Donante = ?,
+                idPaisDonante = ?, idDepartamentoDona = ?, idMunicipioDona = ?,
+                telefonoDonante = ?, idUsuarioDonante = ?, 
+                fechaActualizacion = CURDATE(), horaActualizacion = CURTIME(), idUsuarioActualiza = ?
+             WHERE idDonador = ?`,
+      [
+        nombre1Donante,
+        nombre2Donante,
+        nombre3Donante,
+        apellido1Donante,
+        apellido2Donante,
+        apellido3Donante,
+        idPaisDonante,
+        idDepartamentoDona,
+        idMunicipioDona,
+        telefonoDonante,
+        idUsuarioDonante,
+        idUsuarioActualiza,
+        id,
+      ]
+    );
+    return result.affectedRows;
+  }
+
+  /**
+   * Elimina un donante por su ID.
+   */
+  static async delete(id) {
+    const [result] = await pool.query(
+      "DELETE FROM donantes WHERE idDonador = ?",
+      [id]
+    );
+    return result.affectedRows;
+  }
+}
+
+module.exports = DonanteModel;

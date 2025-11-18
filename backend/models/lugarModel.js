@@ -1,0 +1,138 @@
+// models/LugarModel.js
+
+const pool = require('../config/dbconfig');
+
+/**
+ * Modelo para la tabla Lugares (Entidad Geográfica final).
+ * Dependencias: Paises, Departamentos, Municipios
+ */
+class LugarModel {
+
+    /**
+     * Obtiene todos los lugares con la jerarquía completa.
+     */
+static async findAll(filtros = {}) {
+    const { idPais, idDepartamento, idMunicipio } = filtros;
+
+    let sql = `
+      SELECT 
+        l.idLugar,
+        l.nombreLugar,
+        l.idPaisLugar,
+        l.idDepartamentoLugar,
+        l.idMunicipioLugar,
+        p.nombrePais,
+        d.nombreDepartamento,
+        m.nombreMunicipio
+      FROM lugares l
+      INNER JOIN paises p
+        ON l.idPaisLugar = p.idPais
+      INNER JOIN departamentos d
+        ON l.idDepartamentoLugar = d.idDepartamento
+      INNER JOIN municipios m
+        ON l.idMunicipioLugar = m.idMunicipio
+    `;
+
+    const where  = [];
+    const params = [];
+
+    if (idPais) {
+      where.push('l.idPaisLugar = ?');
+      params.push(Number(idPais));
+    }
+
+    if (idDepartamento) {
+      where.push('l.idDepartamentoLugar = ?');
+      params.push(Number(idDepartamento));
+    }
+
+    if (idMunicipio) {
+      where.push('l.idMunicipioLugar = ?');
+      params.push(Number(idMunicipio));
+    }
+
+    if (where.length) {
+      sql += ' WHERE ' + where.join(' AND ');
+    }
+
+    sql += `
+      ORDER BY p.nombrePais,
+               d.nombreDepartamento,
+               m.nombreMunicipio,
+               l.nombreLugar
+    `;
+
+    try {
+      const [rows] = await pool.query(sql, params);
+      return rows;
+    } catch (err) {
+      console.error('[LugaresModel.findAll] ERROR:', err);
+      throw err; // se va al catch del controller
+    }
+  }
+
+
+
+    /**
+     * Obtiene un lugar por su ID.
+     */
+    static async findById(id) {
+        const query = `
+            SELECT 
+                l.idLugar, 
+                l.nombreLugar,
+                l.idPaisLugar, 
+                p.nombrePais,
+                l.idDepartamentoLugar, 
+                d.nombreDepartamento,
+                l.idMunicipioLugar, 
+                m.nombreMunicipio
+            FROM lugares l
+            JOIN paises p ON l.idPaisLugar = p.idPais
+            JOIN departamentos d ON l.idDepartamentoLugar = d.idDepartamento
+            JOIN municipios m ON l.idMunicipioLugar = m.idMunicipio
+            WHERE l.idLugar = ?
+        `;
+        const [rows] = await pool.query(query, [id]);
+        return rows[0] || null;
+    }
+
+    /**
+     * Crea un nuevo lugar.
+     * @param {Object} data - Los datos del nuevo lugar.
+     * @returns {Promise<number>} El ID del lugar insertado.
+     */
+    static async create({ idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar }) {
+        const [result] = await pool.query(
+            'INSERT INTO lugares (idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar) VALUES (?, ?, ?, ?)',
+            [idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar]
+        );
+        return result.insertId;
+    }
+
+    /**
+     * Actualiza la información de un lugar.
+     */
+    static async update(id, { idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar }) {
+        const [result] = await pool.query(
+            `UPDATE lugares SET 
+                idPaisLugar = ?, 
+                idDepartamentoLugar = ?, 
+                idMunicipioLugar = ?, 
+                nombreLugar = ? 
+             WHERE idLugar = ?`,
+            [idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, id]
+        );
+        return result.affectedRows;
+    }
+
+    /**
+     * Elimina un lugar por su ID.
+     */
+    static async delete(id) {
+        const [result] = await pool.query('DELETE FROM lugares WHERE idLugar = ?', [id]);
+        return result.affectedRows;
+    }
+}
+
+module.exports = LugarModel;
