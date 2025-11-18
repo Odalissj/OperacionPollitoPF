@@ -2,7 +2,7 @@
 
 // Nota: Asegúrate que los nombres de archivo de tus modelos sean exactamente como están aquí
 const CajaModel = require('../models/cajaModel'); // Corregido el nombre
-const TransaccionCajaModel = require('../models/TransaccionCajaModel'); // Corregido el nombre
+const TransaccionCajaModel = require('../models/transaccionCajaModel'); // Corregido el nombre
 const pool = require('../config/dbconfig'); // <-- Corregido: Usar 'db.config'
 
 /**
