@@ -1,7 +1,7 @@
 // controllers/BeneficiarioController.js
 
 const BeneficiarioModel = require('../models/beneficiarioModel'); // Corregido a mayúscula (Encargado)
-const EncargadoModel = require('../models/encargadoModel');
+const EncargadoModel = require('../models/EncargadoModel');
 const BitacoraModel = require('../models/bitacoraModel'); // Corregido a mayúscula (Encargado)
 
 /**
