@@ -5,7 +5,7 @@ let listaDepartamentos = [];
 let listaMunicipios = [];
 let listaLugares = [];
 
-const API = "https://operacionpollitopf.onrender.com/api";
+const API_BASE = "https://operacionpollitopf.onrender.com/api";
 
 
 // Objeto para mantener el Encargado ID activo
