@@ -6,9 +6,9 @@
 
   // ======= PORT DEL BACKEND =========
   // Debe coincidir con process.env.PORT o el valor por defecto de server.js
-  const API_PORT  = 3000;                      // <-- si tu .env tiene PORT=3307, pon 3307 aquí
-  const API_BASE  = `http://localhost:${API_PORT}`;
-  const LOGIN_ENDPOINT = `${API_BASE}/api/auth/login`;
+const API_BASE = "https://operacionpollitopf.onrender.com/api";
+
+  const LOGIN_ENDPOINT = `${API_BASE}/auth/login`;
   // ==================================
 
   const now = () => Date.now();

@@ -5,7 +5,7 @@ let listaDepartamentos = [];
 let listaMunicipios = [];
 let listaLugares = [];
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = 'https://operacionpollitopf.onrender.com/api';
 
 // Obtener el ID del usuario logueado desde PollitoAuth
 function getLoggedUserId() {

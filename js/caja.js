@@ -1,7 +1,7 @@
 // js/caja.js
 
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE_URL = "http://localhost:3000/api"; // Asume que tu API corre en este puerto
+  const API_BASE_URL = "https://operacionpollitopf.onrender.com/api"; // Asume que tu API corre en este puerto
 
   const saldoActualElem = document.getElementById("saldoActual");
   const ingresosHoyElem = document.getElementById("ingresosHoy");

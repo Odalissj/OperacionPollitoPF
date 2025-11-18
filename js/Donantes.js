@@ -32,7 +32,7 @@ function validateForm(form) {
 
 async function fetchPaises() {
   try {
-    const response = await fetch('http://localhost:3000/api/paises');
+    const response = await fetch('https://operacionpollitopf.onrender.com/api/paises');
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const paisesData = await response.json();
     DATA.paises = paisesData.map(p => ({ id: p.idPais, nombre: p.nombrePais }));
@@ -44,7 +44,7 @@ async function fetchPaises() {
 
 async function fetchDepartamentos() {
   try {
-    const response = await fetch('http://localhost:3000/api/departamentos');
+    const response = await fetch('https://operacionpollitopf.onrender.com/api/departamentos');
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const deps = await response.json();
     DATA.departamentos = deps.reduce((acc, dep) => {
@@ -60,7 +60,7 @@ async function fetchDepartamentos() {
 
 async function fetchMunicipios() {
   try {
-    const response = await fetch('http://localhost:3000/api/municipios');
+    const response = await fetch('https://operacionpollitopf.onrender.com/api/municipios');
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const munis = await response.json();
     DATA.municipios = munis.reduce((acc, muni) => {
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     donanteData.horaActualizacion = hora;
 
     try {
-      const response = await fetch('http://localhost:3000/api/donantes', {
+      const response = await fetch('https://operacionpollitopf.onrender.com/api/donantes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -243,7 +243,7 @@ formDonacion.addEventListener('submit', async function (e) {
 
   try {
     // 1. Registrar Donación (el TRIGGER se encargará de Caja y TransaccionesCaja)
-    const donacionResponse = await fetch('http://localhost:3000/api/donaciones', {
+    const donacionResponse = await fetch('https://operacionpollitopf.onrender.com/api/donaciones', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

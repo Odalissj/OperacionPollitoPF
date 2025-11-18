@@ -1,5 +1,7 @@
 // server.js
 const express = require('express');
+const path = require('path');
+
 require('dotenv').config();
 
 const cors        = require('cors');
@@ -28,6 +30,14 @@ app.use(express.urlencoded({ extended: true }));
 
 /* ===== Swagger ===== */
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+// Servir archivos estáticos del frontend (carpetas fuera de /backend)
+app.use('/css', express.static(path.join(__dirname, '..', 'css')));
+app.use('/js', express.static(path.join(__dirname, '..', 'js')));
+app.use('/img', express.static(path.join(__dirname, '..', 'img')));
+app.use('/content', express.static(path.join(__dirname, '..', 'content')));
+app.use('/fonts', express.static(path.join(__dirname, '..', 'fonts')));
+// opcional, por si quieres acceder a otras vistas por URL directa
+app.use('/view', express.static(path.join(__dirname, '..', 'view')));
 
 /* ===== API ===== */
 app.use('/api', seguridadRoutes);       // /api/auth/login, /api/auth/logout, etc.
@@ -48,12 +58,19 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
-app.get('/', (_req, res) => {
+/*app.get('/', (_req, res) => {
   res.status(200).json({
     message: 'API del Sistema de Gestión de Beneficiarios en Node.js (MVC) en funcionamiento. Visita /docs para la documentación.',
     version: '1.0'
   });
+});*/
+// Página principal: mostrar el login (o la que quieras)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'view', 'login.html'));
+  // si tu inicio es index.html en raíz, sería:
+  // res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
+
 
 /* ===== 404 ===== */
 app.use((req, res) =>

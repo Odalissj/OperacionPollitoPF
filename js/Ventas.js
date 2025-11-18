@@ -44,7 +44,7 @@ function getLoggedUserId() {
 
 async function fetchBeneficiarios() {
     try {
-        const response = await fetch('http://localhost:3000/api/beneficiarios');
+        const response = await fetch('https://operacionpollitopf.onrender.com/api/beneficiarios');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
         try {
-            const response = await fetch('http://localhost:3000/api/ventas', {
+            const response = await fetch('https://operacionpollitopf.onrender.com/api/ventas', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
