@@ -1,5 +1,6 @@
 // backend/controllers/comprasController.js
 const ComprasModel = require('../models/compraModel');
+const MovimientoInventarioModel = require('../models/movimientoInventarioModel');
 
 class ComprasController {
 
@@ -33,23 +34,26 @@ static async getAllCompras(req, res) {
   static async createCompra(req, res) {
     try {
       const {
-        idCajaCompra,
         cantidadCompra,
-        totalCompra,
+        precioUnitario,
         fechaCompra = null,
         horaCompra  = null,
+        descripcionCompra = null,
       } = req.body || {};
 
       // Usuario logueado (viene del front, pero si no, usa 1)
-      const idUsuarioIngresa = Number(req.body?.idUsuarioIngresa) || 1;
+      const idUsuarioIngresa = Number(req.user.idUsuario);
+      const idCajaCompra = 1;
+      const totalCompra = Number(cantidadCompra) * Number(precioUnitario);
 
       // Validaciones mínimas (ya NO exigimos fecha/hora)
-      if (!idCajaCompra || !cantidadCompra || !totalCompra) {
+      if (Number(cantidadCompra) <= 0 || Number(precioUnitario) <= 0 || !Number.isFinite(totalCompra)) {
         return res.status(400).json({
-          message: 'idCajaCompra, cantidadCompra y totalCompra son obligatorios.',
+          message: 'La cantidad y el precio unitario deben ser mayores que cero.',
         });
       }
 
+      await MovimientoInventarioModel.ensureTable();
       const idCompra = await ComprasModel.create({
         idCajaCompra: Number(idCajaCompra),
         cantidadCompra: Number(cantidadCompra),
@@ -57,6 +61,12 @@ static async getAllCompras(req, res) {
         fechaCompra,         // opcionales
         horaCompra,          // opcionales
         idUsuarioIngresa,    // usuario logueado
+        descripcionCompra,
+      });
+      await MovimientoInventarioModel.record({
+        tipoMovimiento: 'COMPRA', naturaleza: 'E', cantidad: Number(cantidadCompra),
+        idUsuario: idUsuarioIngresa, idReferencia: idCompra,
+        descripcion: 'Ingreso por compra de pollitos'
       });
 
       return res.status(201).json({

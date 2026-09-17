@@ -40,16 +40,29 @@ class CajaController {
      * **DEBE ser atómico:** Actualizar Caja y registrar TransaccionCaja.
      */
     static async createMovimiento(req, res) {
-        const { montoTrx, idTipoTrx, descripcionTrx, idUsuarioIngreso } = req.body;
+        const { montoTrx, descripcionTrx, idUsuarioIngreso } = req.body;
         
-        if (!montoTrx || !idTipoTrx || !descripcionTrx || !idUsuarioIngreso) {
-            return res.status(400).json({ message: 'Faltan campos obligatorios: montoTrx, idTipoTrx, descripcionTrx, idUsuarioIngreso.' });
+        if (!montoTrx || !descripcionTrx || !idUsuarioIngreso) {
+            return res.status(400).json({ message: 'Monto, descripción y usuario son obligatorios.' });
         }
         
         if (typeof montoTrx !== 'number' || isNaN(montoTrx) || montoTrx === 0) {
             return res.status(400).json({ message: 'montoTrx debe ser un número válido y diferente de cero.' });
         }
 
+        const tipo = req.body.tipo || (montoTrx < 0 ? 'S' : 'E');
+        try {
+            await pool.query('CALL sp_ajustar_caja(?, ?, ?, ?, ?)', [
+                1, tipo, Math.abs(montoTrx), idUsuarioIngreso, descripcionTrx
+            ]);
+            return res.status(201).json({ message: 'Ajuste de caja registrado con éxito.' });
+        } catch (error) {
+            console.error('Error al ajustar caja:', error.message);
+            const status = error.sqlState === '45000' ? 400 : 500;
+            return res.status(status).json({ message: status === 400 ? error.message : 'Error interno al ajustar la caja.' });
+        }
+
+        /* Compatibilidad histórica; el nuevo esquema utiliza sp_ajustar_caja.
         let connection;
         try {
             // 1. Iniciar Transacción y obtener conexión
@@ -125,6 +138,7 @@ class CajaController {
                 connection.release();
             }
         }
+        */
     }
     static async getResumenDiario(req, res) {
     try {

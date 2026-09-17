@@ -53,7 +53,7 @@ static async getAllLugares(req, res) {
      */
     static async createLugar(req, res) {
         try {
-            const { idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar } = req.body;
+            const { idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, referenciaGeneral = null } = req.body;
 
             if (!idPaisLugar || !idDepartamentoLugar || !idMunicipioLugar || !nombreLugar) {
                 return res.status(400).json({ message: 'Todos los campos de ubicación y el nombre son obligatorios.' });
@@ -61,11 +61,11 @@ static async getAllLugares(req, res) {
             
             // Validación de Consistencia de Jerarquía: El municipio debe pertenecer al departamento y país
             const municipio = await MunicipioModel.findById(idMunicipioLugar);
-            if (!municipio || municipio.idDepartamentoMuni !== idDepartamentoLugar || municipio.idPaisMuni !== idPaisLugar) {
+            if (!municipio || Number(municipio.idDepartamentoMuni) !== Number(idDepartamentoLugar) || Number(municipio.idPaisMuni) !== Number(idPaisLugar)) {
                 return res.status(400).json({ message: 'Inconsistencia de datos: La jerarquía de ubicación (País/Departamento/Municipio) es incorrecta.' });
             }
 
-            const id = await LugarModel.create({ idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar });
+            const id = await LugarModel.create({ idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, referenciaGeneral });
             res.status(201).json({ 
                 message: 'Lugar creado con éxito.', 
                 idLugar: id 
@@ -85,7 +85,7 @@ static async getAllLugares(req, res) {
     static async updateLugar(req, res) {
         try {
             const { id } = req.params;
-            const { idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar } = req.body;
+            const { idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, referenciaGeneral = null } = req.body;
 
             if (!idPaisLugar || !idDepartamentoLugar || !idMunicipioLugar || !nombreLugar) {
                 return res.status(400).json({ message: 'Todos los campos de ubicación y el nombre son obligatorios.' });
@@ -93,11 +93,11 @@ static async getAllLugares(req, res) {
 
             // Validación de Consistencia (mismo que en create)
             const municipio = await MunicipioModel.findById(idMunicipioLugar);
-            if (!municipio || municipio.idDepartamentoMuni !== idDepartamentoLugar || municipio.idPaisMuni !== idPaisLugar) {
+            if (!municipio || Number(municipio.idDepartamentoMuni) !== Number(idDepartamentoLugar) || Number(municipio.idPaisMuni) !== Number(idPaisLugar)) {
                 return res.status(400).json({ message: 'Inconsistencia de datos: La jerarquía de ubicación (País/Departamento/Municipio) es incorrecta.' });
             }
 
-            const affectedRows = await LugarModel.update(id, { idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar });
+            const affectedRows = await LugarModel.update(id, { idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, referenciaGeneral });
 
             if (affectedRows === 0) {
                 return res.status(404).json({ message: 'Lugar no encontrado o datos idénticos.' });

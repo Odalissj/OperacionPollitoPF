@@ -2,6 +2,14 @@
 
 const pool = require('../config/dbconfig');
 
+const withoutInternalIds = value => String(value || '')
+    .replace(/\b(Venta|Beneficiario|Usuario|Encargado|Donante)\s+ID\s*\d+\b/gi, '$1');
+
+const hideDescriptionIds = row => ({
+    ...row,
+    descripcionTrx: withoutInternalIds(row.descripcionTrx),
+});
+
 /**
  * Modelo para la tabla TransaccionesCaja.
  * Dependencias: TiposTransacciones, Usuarios, Caja
@@ -28,7 +36,7 @@ class TransaccionCajaModel {
             ORDER BY t.fechaIngreso DESC, t.horaIngreso DESC
         `;
         const [rows] = await pool.query(query);
-        return rows;
+        return rows.map(hideDescriptionIds);
     }
 
     /**
@@ -69,8 +77,8 @@ class TransaccionCajaModel {
 static async getResumenDiario(idCaja = 1) {
   const [rows] = await pool.query(
     `SELECT 
-       SUM(CASE WHEN tt.codigoTrx IN ('DON', 'CRE') THEN t.montoTrx ELSE 0 END) AS ingresosHoy,
-       SUM(CASE WHEN tt.codigoTrx = 'DEB' THEN t.montoTrx ELSE 0 END)           AS egresosHoy
+       SUM(CASE WHEN tt.naturaleza = 'E' THEN t.montoTrx ELSE 0 END) AS ingresosHoy,
+       SUM(CASE WHEN tt.naturaleza = 'S' THEN t.montoTrx ELSE 0 END) AS egresosHoy
      FROM transaccionescaja t
      INNER JOIN tipostransacciones tt
        ON t.idTipoTrx = tt.idTipoTrx
@@ -95,7 +103,8 @@ static async getResumenDiario(idCaja = 1) {
          t.horaIngreso,
          t.montoTrx,
          t.descripcionTrx,
-         tt.codigoTrx AS tipoTransaccion
+         tt.codigoTrx AS tipoTransaccion,
+         tt.naturaleza
        FROM transaccionescaja t
        INNER JOIN tipostransacciones tt
          ON t.idTipoTrx = tt.idTipoTrx
@@ -105,7 +114,7 @@ static async getResumenDiario(idCaja = 1) {
       [idCaja, Number(limit) || 5]
     );
 
-    return rows;
+    return rows.map(hideDescriptionIds);
   }
 
     /**

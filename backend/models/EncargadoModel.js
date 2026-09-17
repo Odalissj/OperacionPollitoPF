@@ -16,7 +16,10 @@ class EncargadoModel {
             SELECT 
                 e.idEncargado, 
                 e.IdentificacionEncarga,
-                CONCAT(e.nombre1Encargado, ' ', e.apellido1Encargado) AS nombreCompleto,
+                CONCAT_WS(' ', e.nombre1Encargado,
+                    NULLIF(e.nombre2Encargado, ''), NULLIF(e.nombre3Encargado, ''),
+                    e.apellido1Encargado, NULLIF(e.apellido2Encargado, ''),
+                    NULLIF(e.apellido3Encargado, '')) AS nombreCompleto,
                 e.telefonoEncargado, 
                 e.correoEncargado,
                 p.nombrePais AS pais,
@@ -86,7 +89,7 @@ class EncargadoModel {
                 fechaIngresoEncarga, horaIngresoEncarga, idUsuarioIngreso,
                 fechaActualizacion, horaActualizacion, idUsuarioActualiza
              ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                NULLIF(?, ''), ?, NULLIF(?, ''), NULLIF(?, ''), ?, NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), 
                 CURDATE(), CURTIME(), ?, 
                 CURDATE(), CURTIME(), ?
              )`,
@@ -117,10 +120,10 @@ class EncargadoModel {
 
         const [result] = await pool.query(
             `UPDATE encargados SET 
-                IdentificacionEncarga = ?, nombre1Encargado = ?, nombre2Encargado = ?, nombre3Encargado = ?,
-                apellido1Encargado = ?, apellido2Encargado = ?, apellido3Encargado = ?,
+                IdentificacionEncarga = NULLIF(?, ''), nombre1Encargado = ?, nombre2Encargado = NULLIF(?, ''), nombre3Encargado = NULLIF(?, ''),
+                apellido1Encargado = ?, apellido2Encargado = NULLIF(?, ''), apellido3Encargado = NULLIF(?, ''),
                 idPaisEncargado = ?, idDepartamentoEncargado = ?, idMuniEncarga = ?, idLugarEncargado = ?,
-                telefonoEncargado = ?, correoEncargado = ?, 
+                telefonoEncargado = NULLIF(?, ''), correoEncargado = NULLIF(?, ''), 
                 fechaActualizacion = CURDATE(), horaActualizacion = CURTIME(), idUsuarioActualiza = ?
              WHERE idEncargado = ?`,
             [

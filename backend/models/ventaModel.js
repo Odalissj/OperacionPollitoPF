@@ -15,7 +15,10 @@ class VentaModel {
         v.idUsuarioIngresa,
 
         -- nombres "bonitos"
-        CONCAT(b.nombre1Beneficiario, ' ', b.apellido1Beneficiario) AS nombreBeneficiario,
+        CONCAT_WS(' ', b.nombre1Beneficiario,
+          NULLIF(b.nombre2Beneficiario, ''), NULLIF(b.nombre3Beneficiario, ''),
+          b.apellido1Beneficiario, NULLIF(b.apellido2Beneficiario, ''),
+          NULLIF(b.apellido3Beneficiario, '')) AS nombreBeneficiario,
         u.nombreUsuario AS nombreUsuarioIngresa
       FROM ventas v
       JOIN beneficiarios b ON b.idBeneficiario = v.idBeneficiarioVenta
@@ -37,7 +40,10 @@ class VentaModel {
         v.horaVenta,
         v.idUsuarioIngresa,
 
-        CONCAT(b.nombre1Beneficiario, ' ', b.apellido1Beneficiario) AS nombreBeneficiario,
+        CONCAT_WS(' ', b.nombre1Beneficiario,
+          NULLIF(b.nombre2Beneficiario, ''), NULLIF(b.nombre3Beneficiario, ''),
+          b.apellido1Beneficiario, NULLIF(b.apellido2Beneficiario, ''),
+          NULLIF(b.apellido3Beneficiario, '')) AS nombreBeneficiario,
         u.nombreUsuario AS nombreUsuarioIngresa
       FROM ventas v
       JOIN beneficiarios b ON b.idBeneficiario = v.idBeneficiarioVenta

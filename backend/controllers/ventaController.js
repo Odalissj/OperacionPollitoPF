@@ -56,11 +56,11 @@ class VentaController {
    * (POST /api/ventas)
    */
   static async createVenta(req, res) {
-    const { idBeneficiarioVenta, TotalVenta, idUsuarioIngresa, detalles } = req.body;
+    const { idBeneficiarioVenta, detalles } = req.body;
+    const idUsuarioIngresa = Number(req.user.idUsuario);
 
     if (
       !idBeneficiarioVenta ||
-      !TotalVenta ||
       !idUsuarioIngresa ||
       !detalles ||
       !Array.isArray(detalles) ||
@@ -71,6 +71,26 @@ class VentaController {
           'Faltan campos obligatorios para la venta (beneficiario, total, usuario, detalles).',
       });
     }
+
+    const detallesNormalizados = detalles.map(detalle => ({
+      cantidad: Number(detalle.cantidad),
+      valorUnidad: Number(detalle.valorUnidad),
+    }));
+    const detalleInvalido = detallesNormalizados.some(detalle =>
+      !Number.isInteger(detalle.cantidad) || detalle.cantidad <= 0 ||
+      !Number.isFinite(detalle.valorUnidad) || detalle.valorUnidad < 6.50
+    );
+    if (detalleInvalido) {
+      return res.status(400).json({
+        message: 'Cada detalle necesita una cantidad entera positiva y un precio unitario mínimo de Q6.50.',
+      });
+    }
+    detallesNormalizados.forEach(detalle => {
+      detalle.subtotal = Number((detalle.cantidad * detalle.valorUnidad).toFixed(2));
+    });
+    const TotalVenta = Number(detallesNormalizados.reduce(
+      (total, detalle) => total + detalle.subtotal, 0
+    ).toFixed(2));
 
     let connection;
     try {
@@ -89,7 +109,7 @@ class VentaController {
       //    - Inventario
       //    - Caja
       //    - TransaccionesCaja
-      await DetalleVentaModel.createMany(detalles, idVenta, connection);
+      await DetalleVentaModel.createMany(detallesNormalizados, idVenta, connection);
 
       // 4. Registrar en bitácora
       await BitacoraModel.create({
@@ -97,15 +117,14 @@ class VentaController {
         accion: 'VENTA',
         tabla: 'ventas',
         pk_afectada: idVenta.toString(),
-        descripcion: `Venta de Q${TotalVenta} a Beneficiario ID ${idBeneficiarioVenta}`,
+        descripcion: `Venta de Q${TotalVenta} registrada para un beneficiario.`,
       });
 
       // 5. Confirmar transacción
       await connection.commit();
 
       res.status(201).json({
-        message:
-          'Venta registrada correctamente. Inventario y caja se actualizan vía triggers.',
+        message: 'Venta registrada correctamente.',
         idVenta,
       });
     } catch (error) {

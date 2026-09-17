@@ -31,6 +31,8 @@ class DonacionController {
       const {
         idDonador,
         montoDonado,
+        idCajaDonacion = 1,
+        descripcionDonacion = null,
         fechaIngreso = null,
         horaIngreso = null,
         idUsuarioIngreso = 1
@@ -43,6 +45,8 @@ class DonacionController {
       const id = await DonacionModel.create({
         idDonador: Number(idDonador),
         montoDonado: Number(montoDonado),
+        idCajaDonacion: Number(idCajaDonacion) || 1,
+        descripcionDonacion,
         fechaIngreso,
         horaIngreso,
         idUsuarioIngreso: Number(idUsuarioIngreso) || 1

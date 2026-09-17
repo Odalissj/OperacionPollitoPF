@@ -1,6 +1,7 @@
 // server.js
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 require('dotenv').config();
 
@@ -8,6 +9,9 @@ const cors        = require('cors');
 const swaggerUi   = require('swagger-ui-express');
 const swaggerSpec = require('./config/swaggerconfig');
 const pool        = require('./config/dbconfig');
+const authenticate = require('./middlewares/authMiddleware');
+const errorHandler = require('./middlewares/errorMiddleware');
+const enforceReadOnlyRole = require('./middlewares/readOnlyRole');
 
 // Rutas
 const catalogosRoutes     = require('./routes/catalogosRoutes');
@@ -17,6 +21,7 @@ const transaccionesRoutes = require('./routes/transaccionesRoutes');
 const seguridadRoutes     = require('./routes/seguridaRoutes');   // <- tu archivo real
 const comprasRoutes       = require('./routes/compras');
 const lugaresRoutes       = require('./routes/lugaresRoutes');
+const configuracionRoutes = require('./routes/configuracionRoutes');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -25,28 +30,23 @@ const PORT = process.env.PORT || 3000;
 app.use(cors()); // permite todos los orígenes (no usas credenciales, así que no hay problema)
 
 /* ===== Parsers ===== */
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 /* ===== Swagger ===== */
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
 // Servir archivos estáticos del frontend (carpetas fuera de /backend)
-app.use('/css', express.static(path.join(__dirname, '..', 'css')));
-app.use('/js', express.static(path.join(__dirname, '..', 'js')));
-app.use('/img', express.static(path.join(__dirname, '..', 'img')));
-app.use('/content', express.static(path.join(__dirname, '..', 'content')));
-app.use('/fonts', express.static(path.join(__dirname, '..', 'fonts')));
-// opcional, por si quieres acceder a otras vistas por URL directa
-app.use('/view', express.static(path.join(__dirname, '..', 'view')));
-
 /* ===== API ===== */
+app.use('/api', authenticate);
 app.use('/api', seguridadRoutes);       // /api/auth/login, /api/auth/logout, etc.
+app.use('/api', enforceReadOnlyRole);
 app.use('/api', catalogosRoutes);
 app.use('/api', geografiaRoutes);
 app.use('/api', personasRoutes);
 app.use('/api', transaccionesRoutes);
 app.use('/api', comprasRoutes);
 app.use('/api', lugaresRoutes);
+app.use('/api', configuracionRoutes);
 
 /* ===== Health & Home ===== */
 app.get('/api/health', async (_req, res) => {
@@ -64,35 +64,39 @@ app.get('/api/health', async (_req, res) => {
     version: '1.0'
   });
 });*/
-// Página principal: mostrar el login (o la que quieras)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'view', 'login.html'));
-  // si tu inicio es index.html en raíz, sería:
-  // res.sendFile(path.join(__dirname, '..', 'index.html'));
-});
+/* ===== Frontend React (producción) ===== */
+const reactDist = path.join(__dirname, '..', 'frontend', 'dist');
 
-// Acceso directo a index.html
-app.get('/index.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
-});
+if (fs.existsSync(reactDist)) {
+  app.use(express.static(reactDist));
+  app.get(/^(?!\/api(?:\/|$)|\/docs(?:\/|$)).*/, (_req, res) => {
+    res.sendFile(path.join(reactDist, 'index.html'));
+  });
+}
 
-/* ===== 404 ===== */
-app.use((req, res) =>
+/* ===== 404 de API ===== */
+app.use('/api', (req, res) =>
   res.status(404).json({ message: `Ruta no encontrada: ${req.originalUrl}` })
 );
 
+app.use(errorHandler);
+
 /* ===== Start ===== */
-app.listen(PORT, async () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`📘 Documentación disponible en http://localhost:${PORT}/docs`);
-  try {
-    const [rows] = await pool.query('SELECT DATABASE() db');
-    console.log(
-      rows[0]?.db
-        ? `✅ Conectado a BD: ${rows[0].db}`
-        : '⚠️ No hay BD seleccionada. Revisa DB_NAME en .env y database en dbconfig.'
-    );
-  } catch (e) {
-    console.error('❌ Error al conectar a la base de datos:', e.message);
-  }
-});
+if (require.main === module) {
+  app.listen(PORT, async () => {
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`📘 Documentación disponible en http://localhost:${PORT}/docs`);
+    try {
+      const [rows] = await pool.query('SELECT DATABASE() db');
+      console.log(
+        rows[0]?.db
+          ? `✅ Conectado a BD: ${rows[0].db}`
+          : '⚠️ No hay BD seleccionada. Revisa DB_NAME en .env y database en dbconfig.'
+      );
+    } catch (e) {
+      console.error('❌ Error al conectar a la base de datos:', e.message);
+    }
+  });
+}
+
+module.exports = app;

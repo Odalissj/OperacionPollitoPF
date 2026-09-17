@@ -3,6 +3,7 @@
 const EncargadoModel = require('../models/EncargadoModel');
 const LugarModel = require('../models/lugarModel');
 const BitacoraModel = require('../models/bitacoraModel');
+const { normalizePhone } = require('../utils/validation');
 
 /**
  * Controlador para la gestión de Encargados.
@@ -48,9 +49,12 @@ class EncargadoController {
             const data = req.body;
             
             // Validación mínima
-            if (!data.IdentificacionEncarga || !data.nombre1Encargado || !data.apellido1Encargado || !data.idUsuarioIngreso) {
-                 return res.status(400).json({ message: 'Campos principales (Identificación, nombres, apellidos, usuario de ingreso) son obligatorios.' });
+            if (!data.nombre1Encargado || !data.apellido1Encargado || !data.idLugarEncargado || !data.idUsuarioIngreso) {
+                 return res.status(400).json({ message: 'Primer nombre, primer apellido, lugar y usuario de ingreso son obligatorios.' });
             }
+            const phone = normalizePhone(data.telefonoEncargado);
+            if (phone === false) return res.status(400).json({ message: 'El teléfono debe contener entre 8 y 15 dígitos y solo puede usar números, +, espacios, guiones o paréntesis.' });
+            data.telefonoEncargado = phone;
 
             // Opcional: Validación de existencia de Lugar
             const lugar = await LugarModel.findById(data.idLugarEncargado);
@@ -93,6 +97,9 @@ class EncargadoController {
             if (!data.idUsuarioActualiza) {
                  return res.status(400).json({ message: 'El ID de usuario que actualiza es obligatorio.' });
             }
+            const phone = normalizePhone(data.telefonoEncargado);
+            if (phone === false) return res.status(400).json({ message: 'El teléfono debe contener entre 8 y 15 dígitos y solo puede usar números, +, espacios, guiones o paréntesis.' });
+            data.telefonoEncargado = phone;
 
             const affectedRows = await EncargadoModel.update(id, data);
 

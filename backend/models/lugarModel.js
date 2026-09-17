@@ -21,6 +21,7 @@ static async findAll(filtros = {}) {
         l.idPaisLugar,
         l.idDepartamentoLugar,
         l.idMunicipioLugar,
+        l.referenciaGeneral,
         p.nombrePais,
         d.nombreDepartamento,
         m.nombreMunicipio
@@ -86,6 +87,7 @@ static async findAll(filtros = {}) {
                 l.idDepartamentoLugar, 
                 d.nombreDepartamento,
                 l.idMunicipioLugar, 
+                l.referenciaGeneral,
                 m.nombreMunicipio
             FROM lugares l
             JOIN paises p ON l.idPaisLugar = p.idPais
@@ -102,10 +104,10 @@ static async findAll(filtros = {}) {
      * @param {Object} data - Los datos del nuevo lugar.
      * @returns {Promise<number>} El ID del lugar insertado.
      */
-    static async create({ idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar }) {
+    static async create({ idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, referenciaGeneral = null }) {
         const [result] = await pool.query(
-            'INSERT INTO lugares (idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar) VALUES (?, ?, ?, ?)',
-            [idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar]
+            'INSERT INTO lugares (idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, referenciaGeneral) VALUES (?, ?, ?, ?, NULLIF(?, \'\'))',
+            [idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, referenciaGeneral]
         );
         return result.insertId;
     }
@@ -113,15 +115,16 @@ static async findAll(filtros = {}) {
     /**
      * Actualiza la información de un lugar.
      */
-    static async update(id, { idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar }) {
+    static async update(id, { idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, referenciaGeneral = null }) {
         const [result] = await pool.query(
             `UPDATE lugares SET 
                 idPaisLugar = ?, 
                 idDepartamentoLugar = ?, 
                 idMunicipioLugar = ?, 
-                nombreLugar = ? 
+                nombreLugar = ?,
+                referenciaGeneral = NULLIF(?, '')
              WHERE idLugar = ?`,
-            [idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, id]
+            [idPaisLugar, idDepartamentoLugar, idMunicipioLugar, nombreLugar, referenciaGeneral, id]
         );
         return result.affectedRows;
     }

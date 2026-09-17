@@ -19,15 +19,16 @@ class DonanteModel {
       d.apellido1Donante,
       d.apellido2Donante,
       d.apellido3Donante,
-      CONCAT(
-        d.nombre1Donante, ' ',
-        d.nombre2Donante, ' ',
-        d.nombre3Donante, ' ',
-        d.apellido1Donante, ' ',
-        d.apellido2Donante, ' ',
-        d.apellido3Donante
+      CONCAT_WS(' ',
+        d.nombre1Donante,
+        NULLIF(d.nombre2Donante, ''),
+        NULLIF(d.nombre3Donante, ''),
+        d.apellido1Donante,
+        NULLIF(d.apellido2Donante, ''),
+        NULLIF(d.apellido3Donante, '')
       ) AS nombreCompleto,
       d.telefonoDonante,
+      d.correoDonante,
       d.idPaisDonante,
       d.idDepartamentoDona,
       d.idMunicipioDona,
@@ -106,6 +107,7 @@ class DonanteModel {
       idDepartamentoDona,
       idMunicipioDona,
       telefonoDonante,
+      correoDonante,
       idUsuarioDonante,
       idUsuarioIngreso,
     } = data;
@@ -115,11 +117,11 @@ class DonanteModel {
                 nombre1Donante, nombre2Donante, nombre3Donante,
                 apellido1Donante, apellido2Donante, apellido3Donante,
                 idPaisDonante, idDepartamentoDona, idMunicipioDona,
-                telefonoDonante, idUsuarioDonante, 
+                telefonoDonante, correoDonante, idUsuarioDonante, 
                 fechaIngresoDona, horaIngresoDona, idUsuarioIngreso,
                 fechaActualizacion, horaActualizacion, idUsuarioActualiza
              ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?, 
                 CURDATE(), CURTIME(), ?, 
                 CURDATE(), CURTIME(), ?
              )`,
@@ -134,6 +136,7 @@ class DonanteModel {
         idDepartamentoDona,
         idMunicipioDona,
         telefonoDonante,
+        correoDonante,
         idUsuarioDonante,
         idUsuarioIngreso, // idUsuarioIngreso
         idUsuarioIngreso, // idUsuarioActualiza (Inicialmente el mismo que el de ingreso)
@@ -157,6 +160,7 @@ class DonanteModel {
       idDepartamentoDona,
       idMunicipioDona,
       telefonoDonante,
+      correoDonante,
       idUsuarioDonante,
       idUsuarioActualiza,
     } = data;
@@ -166,7 +170,7 @@ class DonanteModel {
                 nombre1Donante = ?, nombre2Donante = ?, nombre3Donante = ?,
                 apellido1Donante = ?, apellido2Donante = ?, apellido3Donante = ?,
                 idPaisDonante = ?, idDepartamentoDona = ?, idMunicipioDona = ?,
-                telefonoDonante = ?, idUsuarioDonante = ?, 
+                telefonoDonante = ?, correoDonante = NULLIF(?, ''), idUsuarioDonante = ?, 
                 fechaActualizacion = CURDATE(), horaActualizacion = CURTIME(), idUsuarioActualiza = ?
              WHERE idDonador = ?`,
       [
@@ -180,6 +184,7 @@ class DonanteModel {
         idDepartamentoDona,
         idMunicipioDona,
         telefonoDonante,
+        correoDonante,
         idUsuarioDonante,
         idUsuarioActualiza,
         id,

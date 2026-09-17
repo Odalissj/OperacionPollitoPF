@@ -53,7 +53,7 @@ class MunicipioController {
             // Opcional: Validación extra, verificar consistencia (idPaisMuni debe coincidir con el país del idDepartamentoMuni)
             // Esto se hace en el controlador ya que es lógica de negocio/validación compleja.
             const departamento = await DepartamentoModel.findById(idDepartamentoMuni);
-            if (!departamento || departamento.idPaisDepa !== idPaisMuni) {
+            if (!departamento || Number(departamento.idPaisDepa) !== Number(idPaisMuni)) {
                 return res.status(400).json({ message: 'Inconsistencia de datos: El departamento no pertenece al país especificado.' });
             }
 

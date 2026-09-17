@@ -66,37 +66,19 @@ class ComprasModel {
       fechaCompra = null,
       horaCompra  = null,
       idUsuarioIngresa,
+      descripcionCompra = null,
     } = data;
-
-    const sql = `
-      INSERT INTO compras (
-        idCajaCompra,
-        cantidadCompra,
-        totalCompra,
-        fechaCompra,
-        horaCompra,
-        idUsuarioIngresa
-      )
-      VALUES (
-        ?, ?, ?,
-        COALESCE(?, CURDATE()),
-        COALESCE(?, CURTIME()),
-        ?
-      )
-    `;
-
-    const params = [
-      idCajaCompra,
-      cantidadCompra,
-      totalCompra,
-      fechaCompra,
-      horaCompra,
-      idUsuarioIngresa,
-    ];
-
-    const db = conn || pool;
-    const [result] = await db.query(sql, params);
-    return result.insertId;
+    const connection = conn || await pool.getConnection();
+    try {
+      await connection.query(
+        'CALL sp_registrar_compra(?, ?, ?, ?, ?, @idCompra)',
+        [idCajaCompra, cantidadCompra, totalCompra, idUsuarioIngresa, descripcionCompra]
+      );
+      const [[result]] = await connection.query('SELECT @idCompra AS idCompra');
+      return result.idCompra;
+    } finally {
+      if (!conn) connection.release();
+    }
   }
 }
 

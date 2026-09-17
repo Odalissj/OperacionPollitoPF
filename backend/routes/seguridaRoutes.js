@@ -5,6 +5,7 @@ const AuthController = require('../controllers/authController');
 const UsuarioController = require('../controllers/usuarioController');
 const BitacoraController = require('../controllers/bitacoraController');
 const LoginAttemptController = require('../controllers/loginAttemptController');
+const { requireAdmin } = require('../middlewares/authorize');
 
 /**
  * @swagger
@@ -52,6 +53,8 @@ const LoginAttemptController = require('../controllers/loginAttemptController');
  *         description: Credenciales inválidas.
  */
 router.post('/auth/login', AuthController.login);
+router.post('/auth/forgot-password', AuthController.forgotPassword);
+router.post('/auth/reset-password', AuthController.resetPassword);
 
 /**
  * @swagger
@@ -116,9 +119,9 @@ router.post('/auth/logout', AuthController.logout);
  *       409:
  *         description: El nombre de usuario ya existe.
  */
-router.get('/usuarios', UsuarioController.getAllUsuarios);
-router.post('/usuarios', UsuarioController.createUsuario);
-router.put('/usuarios/:id/password', UsuarioController.updatePassword);
+router.get('/usuarios', requireAdmin, UsuarioController.getAllUsuarios);
+router.post('/usuarios', requireAdmin, UsuarioController.createUsuario);
+router.put('/usuarios/:id/password', requireAdmin, UsuarioController.updatePassword);
 
 
 /**
@@ -162,8 +165,8 @@ router.put('/usuarios/:id/password', UsuarioController.updatePassword);
  *       409:
  *         description: Conflicto, el usuario está referenciado en auditoría o transacciones.
  */
-router.put('/usuarios/:id', UsuarioController.updateUsuario);
-router.delete('/usuarios/:id', UsuarioController.deleteUsuario);
+router.put('/usuarios/:id', requireAdmin, UsuarioController.updateUsuario);
+router.delete('/usuarios/:id', requireAdmin, UsuarioController.deleteUsuario);
 
 // =========================================================================
 // RUTAS: AUDITORÍA (BITÁCORA)

@@ -42,11 +42,16 @@ class BeneficiarioModel {
                 b.idUsuarioActualiza,
 
                 -- Campos “bonitos” para mostrar
-                CONCAT(b.nombre1Beneficiario, ' ', b.nombre2Beneficiario, ' ', b.nombre3Beneficiario, ' ',
-                       b.apellido1Beneficiario, ' ', b.apellido2Beneficiario, ' ', b.apellido3Beneficiario
+                CONCAT_WS(' ', b.nombre1Beneficiario,
+                       NULLIF(b.nombre2Beneficiario, ''), NULLIF(b.nombre3Beneficiario, ''),
+                       b.apellido1Beneficiario, NULLIF(b.apellido2Beneficiario, ''),
+                       NULLIF(b.apellido3Beneficiario, '')
                 ) AS nombreCompleto,
 
-                CONCAT(e.nombre1Encargado, ' ', e.apellido1Encargado) AS nombreEncargado,
+                CONCAT_WS(' ', e.nombre1Encargado,
+                    NULLIF(e.nombre2Encargado, ''), NULLIF(e.nombre3Encargado, ''),
+                    e.apellido1Encargado, NULLIF(e.apellido2Encargado, ''),
+                    NULLIF(e.apellido3Encargado, '')) AS nombreEncargado,
                 l.nombreLugar AS nombreLugar
             FROM beneficiarios b
             JOIN encargados  e ON b.idEncargadoBene  = e.idEncargado
@@ -96,7 +101,10 @@ class BeneficiarioModel {
                 d.nombreDepartamento,
                 m.nombreMunicipio,
                 l.nombreLugar as nombreLugar,
-                CONCAT(e.nombre1Encargado, ' ', e.apellido1Encargado) AS nombreEncargado,
+                CONCAT_WS(' ', e.nombre1Encargado,
+                    NULLIF(e.nombre2Encargado, ''), NULLIF(e.nombre3Encargado, ''),
+                    e.apellido1Encargado, NULLIF(e.apellido2Encargado, ''),
+                    NULLIF(e.apellido3Encargado, '')) AS nombreEncargado,
                 u_ing.nombreUsuario AS usuarioIngreso,
                 u_act.nombreUsuario AS usuarioActualiza
             FROM beneficiarios b
@@ -116,32 +124,41 @@ class BeneficiarioModel {
     /**
      * Crea un nuevo beneficiario.
      */
-    static async create(data) {
+    static async create(data, connection = pool) {
         const {
+            tipoIdentificacion, numeroIdentificacion,
             nombre1Beneficiario, nombre2Beneficiario, nombre3Beneficiario,
             apellido1Beneficiario, apellido2Beneficiario, apellido3Beneficiario,
+            nombreConocidoComo, fechaNacimiento, anioNacimientoAprox,
             idPaisBene, idDepartamentoBene, idMunicipioBene, idLugarBene, estadoBeneficiario,
-            idEncargadoBene, idUsuarioIngreso
+            referenciaUbicacion, idEncargadoBene, observaciones, idUsuarioIngreso
         } = data;
 
-        const [result] = await pool.query(
+        const [result] = await connection.query(
             `INSERT INTO beneficiarios (
+                tipoIdentificacion, numeroIdentificacion,
                 nombre1Beneficiario, nombre2Beneficiario, nombre3Beneficiario,
                 apellido1Beneficiario, apellido2Beneficiario, apellido3Beneficiario,
+                nombreConocidoComo, fechaNacimiento, anioNacimientoAprox,
                 idPaisBene, idDepartamentoBene, idMunicipioBene, idLugarBene, 
-                idEncargadoBene, estadoBeneficiario,
+                referenciaUbicacion, idEncargadoBene, estadoBeneficiario, observaciones,
                 fechaIngresoBene, horaIngresoBene, idUsuarioIngreso,
                 fechaActualizacion, horaActualizacion, idUsuarioActualiza
              ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                NULLIF(?, ''), NULLIF(?, ''),
+                ?, NULLIF(?, ''), NULLIF(?, ''), ?, NULLIF(?, ''), NULLIF(?, ''),
+                NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
+                ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), ?, NULLIF(?, ''),
                 CURDATE(), CURTIME(), ?, 
                 CURDATE(), CURTIME(), ?
              )`,
             [
+                tipoIdentificacion, numeroIdentificacion,
                 nombre1Beneficiario, nombre2Beneficiario, nombre3Beneficiario,
                 apellido1Beneficiario, apellido2Beneficiario, apellido3Beneficiario,
+                nombreConocidoComo, fechaNacimiento, anioNacimientoAprox,
                 idPaisBene, idDepartamentoBene, idMunicipioBene, idLugarBene, 
-                idEncargadoBene, estadoBeneficiario, // <-- estadoBeneficiario es obligatorio
+                referenciaUbicacion, idEncargadoBene, estadoBeneficiario, observaciones,
                 idUsuarioIngreso, // idUsuarioIngreso
                 idUsuarioIngreso  // idUsuarioActualiza (Inicialmente el mismo que el de ingreso)
             ]
@@ -154,25 +171,31 @@ class BeneficiarioModel {
      */
     static async update(id, data) {
         const {
+            tipoIdentificacion, numeroIdentificacion,
             nombre1Beneficiario, nombre2Beneficiario, nombre3Beneficiario,
             apellido1Beneficiario, apellido2Beneficiario, apellido3Beneficiario,
+            nombreConocidoComo, fechaNacimiento, anioNacimientoAprox,
             idPaisBene, idDepartamentoBene, idMunicipioBene, idLugarBene, estadoBeneficiario,
-            idEncargadoBene, idUsuarioActualiza
+            referenciaUbicacion, idEncargadoBene, observaciones, idUsuarioActualiza
         } = data;
 
         const [result] = await pool.query(
             `UPDATE beneficiarios SET 
-                nombre1Beneficiario = ?, nombre2Beneficiario = ?, nombre3Beneficiario = ?,
-                apellido1Beneficiario = ?, apellido2Beneficiario = ?, apellido3Beneficiario = ?,
+                tipoIdentificacion = NULLIF(?, ''), numeroIdentificacion = NULLIF(?, ''),
+                nombre1Beneficiario = ?, nombre2Beneficiario = NULLIF(?, ''), nombre3Beneficiario = NULLIF(?, ''),
+                apellido1Beneficiario = ?, apellido2Beneficiario = NULLIF(?, ''), apellido3Beneficiario = NULLIF(?, ''),
+                nombreConocidoComo = NULLIF(?, ''), fechaNacimiento = NULLIF(?, ''), anioNacimientoAprox = NULLIF(?, ''),
                 idPaisBene = ?, idDepartamentoBene = ?, idMunicipioBene = ?, idLugarBene = ?,
-                idEncargadoBene = ?, estadoBeneficiario = ?,
+                referenciaUbicacion = NULLIF(?, ''), idEncargadoBene = NULLIF(?, ''), estadoBeneficiario = ?, observaciones = NULLIF(?, ''),
                 fechaActualizacion = CURDATE(), horaActualizacion = CURTIME(), idUsuarioActualiza = ?
              WHERE idBeneficiario = ?`,
             [
+                tipoIdentificacion, numeroIdentificacion,
                 nombre1Beneficiario, nombre2Beneficiario, nombre3Beneficiario,
                 apellido1Beneficiario, apellido2Beneficiario, apellido3Beneficiario,
+                nombreConocidoComo, fechaNacimiento, anioNacimientoAprox,
                 idPaisBene, idDepartamentoBene, idMunicipioBene, idLugarBene,
-                idEncargadoBene, estadoBeneficiario, idUsuarioActualiza, id
+                referenciaUbicacion, idEncargadoBene, estadoBeneficiario, observaciones, idUsuarioActualiza, id
             ]
         );
         return result.affectedRows;

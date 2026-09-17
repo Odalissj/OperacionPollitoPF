@@ -4,6 +4,13 @@ const BeneficiarioModel = require('../models/beneficiarioModel'); // Corregido a
 const EncargadoModel = require('../models/EncargadoModel');
 const BitacoraModel = require('../models/bitacoraModel'); // Corregido a mayúscula (Encargado)
 
+const InventarioModel = require('../models/inventarioModel');
+const InventarioGeneralModel = require('../models/InventarioGeneralModel');
+const pool = require('../config/dbconfig');
+const MovimientoInventarioModel = require('../models/movimientoInventarioModel');
+
+const INVENTARIO_INICIAL = 5;
+
 /**
  * Controlador para la gestión de Beneficiarios.
  */
@@ -46,19 +53,22 @@ class BeneficiarioController {
      * Crea un nuevo beneficiario. (POST /api/beneficiarios)
      */
     static async createBeneficiario(req, res) {
+        let connection;
         try {
             const data = req.body;
+            data.idUsuarioIngreso = Number(req.user.idUsuario);
+            data.estadoBeneficiario = 'A';
+            data.tipoIdentificacion = data.numeroIdentificacion?.trim() ? 'OTRO' : null;
             
             // VALIDACIÓN MÍNIMA y ESTRICTA DE TODOS los campos NOT NULL requeridos por la DB
             if (
-                !data.nombre1Beneficiario || !data.nombre2Beneficiario || !data.nombre3Beneficiario ||
-                !data.apellido1Beneficiario || !data.apellido2Beneficiario || !data.apellido3Beneficiario ||
-                !data.idEncargadoBene || !data.idPaisBene || !data.idDepartamentoBene || 
+                !data.nombre1Beneficiario || !data.apellido1Beneficiario ||
+                !data.idPaisBene || !data.idDepartamentoBene || 
                 !data.idMunicipioBene || !data.idLugarBene || !data.estadoBeneficiario || 
                 !data.idUsuarioIngreso
             ) {
                  return res.status(400).json({ 
-                    message: 'Faltan campos obligatorios. Asegúrese de enviar todos los 3 nombres, 3 apellidos, ID de ubicación, Encargado, estadoBeneficiario ("A" o "I") y Usuario de ingreso.' 
+                    message: 'Faltan campos obligatorios: primer nombre, primer apellido, ubicación, estado y usuario de ingreso.' 
                 });
             }
             
@@ -66,12 +76,38 @@ class BeneficiarioController {
             data.estadoBeneficiario = data.estadoBeneficiario.toUpperCase();
             
             // Opcional: Validación de existencia del Encargado (se mantiene la lógica)
-            const encargado = await EncargadoModel.findById(data.idEncargadoBene);
-            if (!encargado) {
-                 return res.status(400).json({ message: 'El ID de Encargado proporcionado no existe.' });
+            if (data.idEncargadoBene) {
+                const encargado = await EncargadoModel.findById(data.idEncargadoBene);
+                if (!encargado) return res.status(400).json({ message: 'El encargado proporcionado no existe.' });
             }
 
-            const id = await BeneficiarioModel.create(data);
+            await MovimientoInventarioModel.ensureTable();
+            connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            const inventarioGeneral = await InventarioGeneralModel.getActualForUpdate(connection);
+            if (!inventarioGeneral || Number(inventarioGeneral.cantidadActual) < INVENTARIO_INICIAL) {
+                const inventoryError = new Error(`La iglesia necesita al menos ${INVENTARIO_INICIAL} pollitos disponibles para registrar al beneficiario.`);
+                inventoryError.code = 'INVENTARIO_INSUFICIENTE';
+                throw inventoryError;
+            }
+
+            const id = await BeneficiarioModel.create(data, connection);
+            const idInventario = await InventarioModel.createInicial({
+                idBeneficiario: id,
+                cantidad: INVENTARIO_INICIAL,
+                idUsuario: data.idUsuarioIngreso
+            }, connection);
+            await InventarioGeneralModel.bajarStock({
+                cantidad: INVENTARIO_INICIAL,
+                idUsuario: data.idUsuarioIngreso
+            }, connection);
+            await MovimientoInventarioModel.record({
+                tipoMovimiento: 'ASIGNACION_INICIAL', naturaleza: 'S', cantidad: INVENTARIO_INICIAL,
+                idBeneficiario: id, idUsuario: data.idUsuarioIngreso, idReferencia: idInventario,
+                descripcion: 'Inventario inicial asignado al beneficiario'
+            }, connection);
+            await connection.commit();
 
             await BitacoraModel.create({
                 idUsuario: data.idUsuarioIngreso,
@@ -82,15 +118,22 @@ class BeneficiarioController {
             });
 
             res.status(201).json({ 
-                message: 'Beneficiario creado con éxito.', 
-                idBeneficiario: id 
+                message: `Beneficiario creado con éxito y ${INVENTARIO_INICIAL} pollitos asignados.`,
+                idBeneficiario: id,
+                cantidadInicial: INVENTARIO_INICIAL
             });
         } catch (error) {
+            if (connection) await connection.rollback();
             console.error('Error al crear beneficiario:', error.message);
+            if (error.code === 'INVENTARIO_INSUFICIENTE') {
+                return res.status(409).json({ message: error.message });
+            }
             if (error.code === 'ER_NO_REFERENCED_ROW_2' || error.code === 'ER_ROW_DOES_NOT_EXIST') {
                 return res.status(400).json({ message: 'Error de integridad: Una de las claves foráneas (ubicación, encargado o usuario) no existe.' });
             }
             res.status(500).json({ message: 'Error interno del servidor.' });
+        } finally {
+            if (connection) connection.release();
         }
     }
 
@@ -102,10 +145,11 @@ class BeneficiarioController {
         try {
             const { id } = req.params;
             const data = req.body;
+            data.tipoIdentificacion = data.numeroIdentificacion?.trim() ? 'OTRO' : null;
 
             // Validación de campos obligatorios para UPDATE (ajustar según el modelo)
             if (
-                !data.nombre1Beneficiario || !data.apellido1Beneficiario || !data.idEncargadoBene || 
+                !data.nombre1Beneficiario || !data.apellido1Beneficiario ||
                 !data.idPaisBene || !data.idDepartamentoBene || !data.idMunicipioBene || 
                 !data.idLugarBene || !data.estadoBeneficiario || !data.idUsuarioActualiza
             ) {

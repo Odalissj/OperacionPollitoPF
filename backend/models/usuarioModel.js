@@ -53,7 +53,9 @@ class UsuarioModel {
             SELECT 
                 u.idUsuario, 
                 u.nombreUsuario, 
+                u.correoUsuario,
                 u.idRol, 
+                u.estadoUsuario,
                 r.nombreRol 
             FROM usuarios u
             JOIN roles r ON u.idRol = r.idRol
@@ -70,7 +72,9 @@ class UsuarioModel {
             SELECT 
                 u.idUsuario, 
                 u.nombreUsuario, 
+                u.correoUsuario,
                 u.idRol, 
+                u.estadoUsuario,
                 r.nombreRol
             FROM usuarios u
             JOIN roles r ON u.idRol = r.idRol
@@ -91,15 +95,42 @@ class UsuarioModel {
         return rows[0] || null;
     }
 
+    static async findByEmail(correoUsuario) {
+        const [rows] = await pool.query(
+            `SELECT * FROM usuarios
+             WHERE LOWER(correoUsuario) = LOWER(?) AND estadoUsuario = 'A'
+             LIMIT 1`,
+            [correoUsuario]
+        );
+        return rows[0] || null;
+    }
+
+    static async findAnyByEmail(correoUsuario) {
+        const [rows] = await pool.query(
+            'SELECT idUsuario, correoUsuario FROM usuarios WHERE LOWER(correoUsuario) = LOWER(?) LIMIT 1',
+            [correoUsuario]
+        );
+        return rows[0] || null;
+    }
+
+    static async updatePassword(idUsuario, contrasena) {
+        const contrasenaHasheada = await this.hashPassword(contrasena);
+        const [result] = await pool.query(
+            'UPDATE usuarios SET contrasena = ? WHERE idUsuario = ?',
+            [contrasenaHasheada, idUsuario]
+        );
+        return result.affectedRows;
+    }
+
     /**
      * Crea un nuevo usuario (siempre guarda la contraseña hasheada).
      */
-    static async create({ nombreUsuario, contrasena, idRol }) {
+    static async create({ nombreUsuario, contrasena, correoUsuario = null, idRol, estadoUsuario = 'A' }) {
         const contrasenaHasheada = await this.hashPassword(contrasena);
 
         const [result] = await pool.query(
-            'INSERT INTO usuarios (nombreUsuario, contrasena, idRol) VALUES (?, ?, ?)',
-            [nombreUsuario, contrasenaHasheada, idRol]
+            'INSERT INTO usuarios (nombreUsuario, contrasena, correoUsuario, idRol, estadoUsuario) VALUES (?, ?, NULLIF(?, \'\'), ?, ?)',
+            [nombreUsuario, contrasenaHasheada, correoUsuario, idRol, estadoUsuario]
         );
         return result.insertId;
     }
@@ -108,9 +139,9 @@ class UsuarioModel {
      * Actualiza la información de un usuario.
      * Si viene contraseña no vacía, se vuelve a hashear.
      */
-    static async update(id, { nombreUsuario, contrasena, idRol }) {
-        let sql = 'UPDATE usuarios SET nombreUsuario = ?, idRol = ?';
-        const params = [nombreUsuario, idRol];
+    static async update(id, { nombreUsuario, contrasena, correoUsuario = null, idRol, estadoUsuario = 'A' }) {
+        let sql = 'UPDATE usuarios SET nombreUsuario = ?, correoUsuario = NULLIF(?, \'\'), idRol = ?, estadoUsuario = ?';
+        const params = [nombreUsuario, correoUsuario, idRol, estadoUsuario];
 
         if (contrasena) {
             const contrasenaHasheada = await this.hashPassword(contrasena);

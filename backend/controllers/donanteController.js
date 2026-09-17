@@ -1,7 +1,9 @@
 // controllers/DonanteController.js
 
 const DonanteModel = require('../models/donanteModel');
+const DonacionModel = require('../models/donacionModel');
 const BitacoraModel = require('../models/bitacoraModel');
+const { normalizePhone } = require('../utils/validation');
 
 /**
  * Controlador para la gestión de Donantes.
@@ -43,16 +45,35 @@ class DonanteController {
      * Crea un nuevo donante. (POST /api/donantes)
      */
     static async createDonante(req, res) {
+        let id = null;
+        let donationCreated = false;
         try {
             const data = req.body;
+            data.idUsuarioIngreso = Number(req.user.idUsuario);
+            data.idUsuarioDonante = Number(req.user.idUsuario);
             
             // Validación mínima
             if (!data.nombre1Donante || !data.apellido1Donante || !data.idUsuarioIngreso) {
                  return res.status(400).json({ message: 'El primer nombre, primer apellido y el usuario de ingreso son obligatorios.' });
             }
+            const phone = normalizePhone(data.telefonoDonante);
+            if (phone === false) return res.status(400).json({ message: 'El teléfono debe contener entre 8 y 15 dígitos y solo puede usar números, +, espacios, guiones o paréntesis.' });
+            data.telefonoDonante = phone;
+
+            const montoDonacionInicial = Number(data.montoDonacionInicial);
+            if (!Number.isFinite(montoDonacionInicial) || montoDonacionInicial <= 0) {
+                return res.status(400).json({ message: 'El monto de la donación inicial debe ser mayor que cero.' });
+            }
             
             // Asumiendo que las FK de ubicación son válidas o se validan en otro middleware/capa
-            const id = await DonanteModel.create(data);
+            id = await DonanteModel.create(data);
+            const idDonacion = await DonacionModel.create({
+                idDonador: id,
+                montoDonado: montoDonacionInicial,
+                idUsuarioIngreso: data.idUsuarioIngreso,
+                descripcionDonacion: 'Donación inicial registrada al crear el donante'
+            });
+            donationCreated = true;
 
             await BitacoraModel.create({
                 idUsuario: data.idUsuarioIngreso,
@@ -63,11 +84,17 @@ class DonanteController {
             });
 
             res.status(201).json({ 
-                message: 'Donante creado con éxito.', 
-                idDonador: id 
+                message: 'Donante y donación inicial creados con éxito.',
+                idDonador: id,
+                idDonacion
             });
         } catch (error) {
             console.error('Error al crear donante:', error.message);
+            if (id && !donationCreated) {
+                try { await DonanteModel.delete(id); } catch (rollbackError) {
+                    console.error('No se pudo revertir el donante tras fallar la donación:', rollbackError.message);
+                }
+            }
             if (error.code === 'ER_NO_REFERENCED_ROW_2') {
                 return res.status(400).json({ message: 'Error de integridad: Una de las claves foráneas (ubicación o usuario) no existe.' });
             }
@@ -82,11 +109,16 @@ class DonanteController {
         try {
             const { id } = req.params;
             const data = req.body;
+            data.idUsuarioActualiza = Number(req.user.idUsuario);
+            data.idUsuarioDonante = Number(req.user.idUsuario);
 
             // Validación mínima
             if (!data.idUsuarioActualiza) {
                  return res.status(400).json({ message: 'El ID de usuario que actualiza es obligatorio.' });
             }
+            const phone = normalizePhone(data.telefonoDonante);
+            if (phone === false) return res.status(400).json({ message: 'El teléfono debe contener entre 8 y 15 dígitos y solo puede usar números, +, espacios, guiones o paréntesis.' });
+            data.telefonoDonante = phone;
 
             const affectedRows = await DonanteModel.update(id, data);
 

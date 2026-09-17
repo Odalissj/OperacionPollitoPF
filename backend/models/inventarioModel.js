@@ -13,10 +13,23 @@ class InventarioModel {
      */
 static async findAll() {
     const query = `
-        SELECT 
-            i.*,
-            b.idBeneficiario, 
-            CONCAT(b.nombre1Beneficiario, ' ', b.apellido1Beneficiario) AS nombreBeneficiario,
+        SELECT
+            i.idInventario,
+            i.idBeneficiario,
+            CONCAT_WS(' ', b.nombre1Beneficiario,
+                NULLIF(b.nombre2Beneficiario, ''), NULLIF(b.nombre3Beneficiario, ''),
+                b.apellido1Beneficiario, NULLIF(b.apellido2Beneficiario, ''),
+                NULLIF(b.apellido3Beneficiario, '')) AS nombreBeneficiario,
+            i.cantidadInicial,
+            i.cantidadVendida,
+            i.cantidadConsumida,
+            i.cantidadActual,
+            i.ultimaCantidadIngre,
+            i.montoTotal,
+            i.fechaIngreso,
+            i.fechaActualizacion,
+            i.idUsuarioIngreso,
+            i.idUsuarioActualiza,
             u_ing.nombreUsuario AS usuarioIngreso,
             u_act.nombreUsuario AS usuarioActualiza
         FROM inventario i
@@ -48,8 +61,8 @@ static async findAll() {
   }
 
   // Crear inventario inicial de beneficiario
-  static async createInicial({ idBeneficiario, cantidad, idUsuario }) {
-    const [result] = await pool.query(
+  static async createInicial({ idBeneficiario, cantidad, idUsuario }, connection = pool) {
+    const [result] = await connection.query(
       `INSERT INTO inventario (
         idBeneficiario,
         cantidadInicial,
@@ -65,8 +78,8 @@ static async findAll() {
         horaActualizacion,
         idUsuarioActualiza
       )
-      VALUES (?, 0, 0, 0, ?, ?, 0, CURDATE(), CURTIME(), ?, CURDATE(), CURTIME(), ?)`,
-      [idBeneficiario, cantidad, cantidad, idUsuario, idUsuario]
+      VALUES (?, ?, 0, 0, ?, ?, 0, CURDATE(), CURTIME(), ?, CURDATE(), CURTIME(), ?)`,
+      [idBeneficiario, cantidad, cantidad, cantidad, idUsuario, idUsuario]
     );
     return result.insertId;
   }

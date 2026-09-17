@@ -91,6 +91,16 @@ class InventarioGeneralModel {
     return rows[0] || null;
   }
 
+  static async getActualForUpdate(connection) {
+    const [rows] = await connection.query(`
+      SELECT idInventarioGeneral, cantidadActual
+      FROM inventariogeneral
+      WHERE idInventarioGeneral = 1
+      FOR UPDATE
+    `);
+    return rows[0] || null;
+  }
+
   // Bajar stock SIN tocar ultimaCantidadIngre
   static async bajarStock({ cantidad, idUsuario }, conn = null) {
     const db = conn || pool;

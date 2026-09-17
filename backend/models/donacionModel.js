@@ -24,7 +24,10 @@ class DonacionModel {
         d.IdUsuarioActualizacion,
 
         -- nombre del donante
-        CONCAT(da.nombre1Donante, ' ', da.apellido1Donante) AS nombreDonante,
+        CONCAT_WS(' ', da.nombre1Donante,
+          NULLIF(da.nombre2Donante, ''), NULLIF(da.nombre3Donante, ''),
+          da.apellido1Donante, NULLIF(da.apellido2Donante, ''),
+          NULLIF(da.apellido3Donante, '')) AS nombreDonante,
 
         -- nombres de usuarios
         uIng.nombreUsuario AS usuarioIngresoNombre,
@@ -73,30 +76,23 @@ class DonacionModel {
     idDonador,
     montoDonado,
     idUsuarioIngreso,
+    idCajaDonacion = 1,
+    descripcionDonacion = null,
     fechaIngreso = null,
     horaIngreso = null
   }) {
-    const sql = `
-      INSERT INTO donaciones
-        (idDonador, montoDonado,
-         fechaIngreso,  horaIngreso,  idUsuarioIngreso,
-         fechaActualizacion, horaActualizacion, IdUsuarioActualizacion)
-      VALUES
-        (?, ?,
-         COALESCE(?, CURDATE()), COALESCE(?, CURTIME()), ?,
-         CURDATE(), CURTIME(), ?)
-    `;
-
     const user = Number(idUsuarioIngreso) || 1;
-    const [r] = await pool.query(sql, [
-      Number(idDonador),
-      Number(montoDonado),
-      fechaIngreso,
-      horaIngreso,
-      user, // idUsuarioIngreso
-      user  // IdUsuarioActualizacion
-    ]);
-    return r.insertId;
+    const connection = await pool.getConnection();
+    try {
+      await connection.query(
+        'CALL sp_registrar_donacion(?, ?, ?, ?, ?, @idDonacion)',
+        [Number(idDonador), Number(idCajaDonacion), Number(montoDonado), user, descripcionDonacion]
+      );
+      const [[result]] = await connection.query('SELECT @idDonacion AS idDonacion');
+      return result.idDonacion;
+    } finally {
+      connection.release();
+    }
   }
 
   // ==========================

@@ -49,13 +49,22 @@ class UsuarioController {
      */
     static async createUsuario(req, res) {
         try {
-            const { nombreUsuario, contrasena, idRol } = req.body;
+            const { contrasena, idRol, estadoUsuario = 'A' } = req.body;
+            const nombreUsuario = String(req.body.nombreUsuario || '').trim();
+            const correoUsuario = String(req.body.correoUsuario || '').trim() || null;
 
             if (!nombreUsuario || !contrasena || !idRol) {
                 return res.status(400).json({ message: 'El nombre de usuario, la contraseña y el ID de rol son obligatorios.' });
             }
 
-            const id = await UsuarioModel.create({ nombreUsuario, contrasena, idRol });
+            if (await UsuarioModel.findByUsername(nombreUsuario)) {
+                return res.status(409).json({ message: 'El nombre de usuario ya está registrado.' });
+            }
+            if (correoUsuario && await UsuarioModel.findAnyByEmail(correoUsuario)) {
+                return res.status(409).json({ message: 'El correo electrónico ya está registrado para otro usuario.' });
+            }
+
+            const id = await UsuarioModel.create({ nombreUsuario, contrasena, correoUsuario, idRol, estadoUsuario });
 
             // REGISTRO EN BITÁCORA
             await BitacoraModel.create({
@@ -73,7 +82,8 @@ class UsuarioController {
         } catch (error) {
             console.error('Error al crear usuario:', error.message);
             if (error.code === 'ER_DUP_ENTRY') {
-                return res.status(409).json({ message: 'El nombre de usuario ya existe.' });
+                const isEmail = /correo|uk_usuarios_correo/i.test(error.sqlMessage || error.message);
+                return res.status(409).json({ message: isEmail ? 'El correo electrónico ya está registrado para otro usuario.' : 'El nombre de usuario ya está registrado.' });
             }
             if (error.code === 'ER_NO_REFERENCED_ROW_2') {
                 return res.status(400).json({ message: 'El ID de rol proporcionado no existe.' });
@@ -88,14 +98,24 @@ class UsuarioController {
     static async updateUsuario(req, res) {
         try {
             const { id } = req.params;
-            const { nombreUsuario, contrasena, idRol } = req.body;
+            const { contrasena, idRol, estadoUsuario = 'A' } = req.body;
+            const nombreUsuario = String(req.body.nombreUsuario || '').trim();
+            const correoUsuario = String(req.body.correoUsuario || '').trim() || null;
 
             if (!nombreUsuario || !idRol) {
                 return res.status(400).json({ message: 'El nombre de usuario y el ID de rol son obligatorios.' });
             }
+            const sameName = await UsuarioModel.findByUsername(nombreUsuario);
+            if (sameName && Number(sameName.idUsuario) !== Number(id)) {
+                return res.status(409).json({ message: 'El nombre de usuario ya está registrado.' });
+            }
+            const sameEmail = correoUsuario ? await UsuarioModel.findAnyByEmail(correoUsuario) : null;
+            if (sameEmail && Number(sameEmail.idUsuario) !== Number(id)) {
+                return res.status(409).json({ message: 'El correo electrónico ya está registrado para otro usuario.' });
+            }
             
             // Lógica: Solo se actualiza la contraseña si se provee un valor
-            const affectedRows = await UsuarioModel.update(id, { nombreUsuario, contrasena, idRol });
+            const affectedRows = await UsuarioModel.update(id, { nombreUsuario, contrasena, correoUsuario, idRol, estadoUsuario });
 
             if (affectedRows === 0) {
                 return res.status(404).json({ message: 'Usuario no encontrado o datos idénticos.' });
@@ -113,6 +133,10 @@ class UsuarioController {
             res.status(200).json({ message: 'Usuario actualizado con éxito.' });
         } catch (error) {
             console.error('Error al actualizar usuario:', error.message);
+            if (error.code === 'ER_DUP_ENTRY') {
+                const isEmail = /correo|uk_usuarios_correo/i.test(error.sqlMessage || error.message);
+                return res.status(409).json({ message: isEmail ? 'El correo electrónico ya está registrado para otro usuario.' : 'El nombre de usuario ya está registrado.' });
+            }
             if (error.code === 'ER_NO_REFERENCED_ROW_2') {
                 return res.status(400).json({ message: 'El ID de rol proporcionado no existe.' });
             }

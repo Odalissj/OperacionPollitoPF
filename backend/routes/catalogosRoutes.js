@@ -6,6 +6,7 @@ const router = express.Router();
 const PaisController = require('../controllers/paisController');
 const RolController = require('../controllers/rolController');
 const TipoTransaccionController = require('../controllers/tipoTransaccionController');
+const { requireAdmin } = require('../middlewares/authorize');
 
 /**
  * @swagger
@@ -148,7 +149,7 @@ router.delete('/paises/:id', PaisController.deletePais);
  *       200:
  *         description: Lista de roles obtenida con éxito.
  */
-router.get('/roles', RolController.getAllRoles);
+router.get('/roles', requireAdmin, RolController.getAllRoles);
 
 /**
  * @swagger
@@ -173,7 +174,7 @@ router.get('/roles', RolController.getAllRoles);
  *       201:
  *         description: Rol creado con éxito.
  */
-router.post('/roles', RolController.createRol);
+router.post('/roles', requireAdmin, RolController.createRol);
 
 /**
  * @swagger
@@ -234,9 +235,9 @@ router.post('/roles', RolController.createRol);
  *       409:
  *         description: Conflicto, el rol está asociado a usuarios.
  */
-router.get('/roles/:id', RolController.getRolById);
-router.put('/roles/:id', RolController.updateRol);
-router.delete('/roles/:id', RolController.deleteRol);
+router.get('/roles/:id', requireAdmin, RolController.getRolById);
+router.put('/roles/:id', requireAdmin, RolController.updateRol);
+router.delete('/roles/:id', requireAdmin, RolController.deleteRol);
 
 // =========================================================================
 // RUTAS: TIPOS DE TRANSACCIÓN

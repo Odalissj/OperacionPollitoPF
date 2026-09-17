@@ -2,6 +2,7 @@
 const pool = require('../config/dbconfig');
 const InventarioModel = require('../models/inventarioModel');
 const InventarioGeneralModel = require('../models/InventarioGeneralModel');
+const MovimientoInventarioModel = require('../models/movimientoInventarioModel');
 
 /**
  * Controlador para la gestión de Inventario.
@@ -116,6 +117,7 @@ class InventarioController {
 
   // POST /api/inventario/entregar
   static async entregarPollitos(req, res) {
+    await MovimientoInventarioModel.ensureTable();
     const conn = await pool.getConnection();
     try {
       const { idBeneficiario, cantidad, idUsuario } = req.body;
@@ -173,6 +175,12 @@ class InventarioController {
           [cantidad, cantidad, idUsuario, idBeneficiario]
         );
       }
+
+      await MovimientoInventarioModel.record({
+        tipoMovimiento: 'ENTREGA', naturaleza: 'S', cantidad: Number(cantidad),
+        idBeneficiario: Number(idBeneficiario), idUsuario: Number(idUsuario),
+        descripcion: 'Entrega adicional al beneficiario'
+      }, conn);
 
       await conn.commit();
       res.status(200).json({ message: 'Entrega registrada exitosamente.' });

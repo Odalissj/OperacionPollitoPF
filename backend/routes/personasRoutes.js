@@ -2,6 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
+const BeneficiarioContactoController = require('../controllers/beneficiarioContactoController');
 
 const EncargadoController = require('../controllers/encargadoController');
 const DonanteController = require('../controllers/donanteController');
@@ -231,5 +232,9 @@ router.post('/beneficiarios', BeneficiarioController.createBeneficiario);
  */
 router.get('/beneficiarios/:id', BeneficiarioController.getBeneficiarioById);
 router.put('/beneficiarios/:id', BeneficiarioController.updateBeneficiario);
+router.get('/beneficiario-contactos', BeneficiarioContactoController.getAll);
+router.get('/beneficiario-contactos/:id', BeneficiarioContactoController.getById);
+router.post('/beneficiario-contactos', BeneficiarioContactoController.create);
+router.put('/beneficiario-contactos/:id', BeneficiarioContactoController.update);
 
 module.exports = router;

@@ -167,6 +167,7 @@ router.get('/inventario/beneficiario/:id', InventarioController.getInventarioByB
 router.post('/inventario', InventarioController.createInventario);
 
 router.get('/inventario-general', InventarioGeneralController.getAllInventarioGeneral);
+router.get('/inventario-general/movimientos', InventarioGeneralController.getMovimientos);
 router.post('/inventario/entregar', InventarioController.entregarPollitos);
 
 // =========================================================================

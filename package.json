@@ -1,6 +1,14 @@
 {
-  "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "mssql": "^12.1.0"
+  "name": "operacion-pollito",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix backend start",
+    "check": "npm --prefix frontend run lint && npm --prefix frontend run build"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

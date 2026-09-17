@@ -1,7 +1,17 @@
 // backend/controllers/InventarioGeneralController.js
 const InventarioGeneralModel = require('../models/InventarioGeneralModel');
+const MovimientoInventarioModel = require('../models/movimientoInventarioModel');
 
 class InventarioGeneralController {
+
+  static async getMovimientos(req, res) {
+    try {
+      return res.status(200).json(await MovimientoInventarioModel.findAll());
+    } catch (error) {
+      console.error('[InventarioGeneral] Error al obtener movimientos:', error);
+      return res.status(500).json({ message: 'Error interno al obtener los movimientos de inventario.' });
+    }
+  }
 
   // GET /api/inventario-general
   static async getAllInventarioGeneral(req, res) {
