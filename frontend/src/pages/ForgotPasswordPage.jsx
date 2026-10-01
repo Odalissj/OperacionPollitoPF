@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CheckCircle2, LoaderCircle } from 'lucide-react'
 import { api } from '../lib/api'
-import sonrisasLogo from '../../../legacy-frontend/img/Sonrisas.png'
+import sonrisasLogo from '../assets/Sonrisas.png'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState(''), [loading, setLoading] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('')

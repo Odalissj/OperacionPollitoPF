@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff, LoaderCircle, LockKeyhole, UserRound } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
-import sonrisasLogo from '../../../legacy-frontend/img/Sonrisas.png'
-import fondoPollito from '../../../legacy-frontend/img/FondoPollito.jpg'
+import sonrisasLogo from '../assets/Sonrisas.png'
+import fondoPollito from '../assets/FondoPollito.jpg'
 
 export function LoginPage() {
   const { session, login } = useAuth()

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { LoaderCircle, Pencil, X } from 'lucide-react'
 import { api } from '../lib/api'
 import { useAuth } from '../auth/AuthContext'
-import fondoPollito from '../../../legacy-frontend/img/FondoPollito.jpg'
+import fondoPollito from '../assets/FondoPollito.jpg'
 
 function quarterStart() {
   const date = new Date()

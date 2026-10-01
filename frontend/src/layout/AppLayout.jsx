@@ -3,7 +3,7 @@ import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { navigation } from '../config/navigation'
-import logo from '../../../legacy-frontend/img/Sonrisas.png'
+import logo from '../assets/Sonrisas.png'
 
 export function AppLayout() {
   const [open, setOpen] = useState(false)
